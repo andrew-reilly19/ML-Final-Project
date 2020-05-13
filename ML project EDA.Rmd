@@ -1,0 +1,100 @@
+---
+title: "Machine Learning Project workspace"
+author: "Andrew Reilly"
+date: "5/12/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message=FALSE)
+knitr::opts_chunk$set(warnings=FALSE)
+knitr::opts_chunk$set(error = FALSE)
+knitr::opts_chunk$set(tidy = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(plotly)
+library(ggcorrplot)
+library(car)
+library(kableExtra)
+```
+
+```{r}
+trails <- read_csv("/Users/andrew/Desktop/NCF_DS/MachineLearning/Project/nationalparktrails_CLEAN.csv")
+
+trails <- trails %>% select(-X1)
+
+trails_lm_data <- trails %>% select(c("route_type","popularity","length","elevation_gain","difficulty_rating",
+                                      "visitor_usage","num_reviews","latitude","longitude","avg_rating"))
+colnames(trails_lm_data) <- c("route_type","popularity","length","elevation","difficulty","usage","num_reviews","lat","lng","rating")
+```
+
+### EDA:
+```{r}
+#first getting the columns with NAs:
+for (i in 1:ncol(trails_lm_data)){
+  x=sum(is.na(trails_lm_data[,i]))
+  cat(i,x,"\n")
+}
+#253 NAs in visitor_usage
+trails_select <- trails %>% select(c("name","area_name","visitor_usage")) %>% filter(is.na(visitor_usage))
+```
+
+# MLR using rating as response variable
+
+
+```{r}
+qd <- sample(3313,10)
+quickdisplay <- trails %>% filter(trail_id==10006571)
+# kable(quickdisplay, format = "markdown") %>%
+#   kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+```{r}
+ggplot(trails, aes(x=num_reviews, y=popularity)) + geom_point() +
+  labs(title="Popularity vs. Reviews", x = "Number of Reviews", y = "Popularity")
+
+#hist(trails$avg_rating)
+
+# fig <- plot_ly(x = trails$avg_rating, type = "histogram")
+# fig
+```
+
+# Checking NAs
+```{r}
+#first getting the columns with NAs:
+for (i in 1:ncol(trails_lm_data)){
+  x=sum(is.na(trails_lm_data[,i]))
+  cat(i,x,"\n")
+}
+#253 NAs in visitor_usage
+trails_select <- trails_lm_data %>% select(c("usage")) %>% filter(is.na(usage))
+trails_select
+```
+
+
+```{r}
+kable(trails, format = "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = T)
+```
+
+
+```{r}
+ratings <- trails$avg_rating
+plot(ratings)
+```
+
+
+
+
+
+
+
+
+
+
+

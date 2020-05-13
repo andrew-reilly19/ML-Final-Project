@@ -1,0 +1,162 @@
+---
+title: "Machine Learning Project workspace"
+author: "Andrew Reilly"
+date: "5/2/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message=FALSE)
+knitr::opts_chunk$set(warnings=FALSE)
+knitr::opts_chunk$set(error = FALSE)
+knitr::opts_chunk$set(tidy = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(plotly)
+library(ggcorrplot)
+library(car)
+library(kableExtra)
+```
+
+```{r}
+#trails <- read_csv("/Users/andrew/Desktop/NCF_DS/MachineLearning/Project/nationalparktrails_CLEAN.csv")
+
+# trails_lm_data <- trails %>% select(c("route_type","popularity","length","elevation_gain","difficulty_rating",
+#                                       "visitor_usage","num_reviews","latitude","longitude","avg_rating"))
+#colnames(trails_lm_data) <- c("route_type","popularity","length","elevation","difficulty","usage","num_reviews","lat","lng","rating")
+
+trails <- read_csv("/Users/andrew/Desktop/NCF_DS/MachineLearning/Project/nationalparktrails_finaldata.csv")
+trails <- trails %>% select(-c("X1","trail_id","name","area_name","state_name"))
+trails_lm_data <- trails %>% mutate(difficulty = fct_recode(factor(difficulty_rating),"Easy"="1","Modearate"="3","Hard"="5","VHard"="7")) %>% mutate(usage = fct_recode(factor(visitor_usage),"VLight"="0","Light"="1","Modearate"="2","Heavy"="3","VHeavy"="4"))
+trails_lm_data$difficulty_rating <- NULL
+trails_lm_data$visitor_usage <- NULL
+```
+# MLR using rating as response variable
+
+### running lm:
+```{r}
+lm.obj <- lm(avg_rating~., data=trails_lm_data)
+summary(lm.obj)
+
+#BIG
+#step(lm.obj)
+```
+
+### evaluating collinearity via Variance Inflation Factor:
+```{r}
+# #correlation matrix:
+# cormat <- round(cor(trails_lm_data[,2:10]),2)
+# cormat
+# #ifelse(abs(cormat) > 0.9, abs(cormat),0)
+# 
+# #using Variance Inflation Factor for multi-collinearity
+# vif(lm.obj)
+```
+##### Nothing here suffers from clear collinearity, however popularity and num_reviews is quite close at .86.  This doesn't seem to have a major negative effect in the lm, however, (both are still highly significant) so I left them in. 
+
+### AIC backwards step selection
+```{r}
+#step(lm.obj)
+```
+
+### final model:
+```{r}
+#trails_lm_data$rating <- (trails_lm_data$rating+.0001)
+lm.fin <- lm(avg_rating ~ popularity + length + num_reviews + 
+    latitude + loop + `out and back` + `partially-paved` + camping + 
+    kids + beach + surfing + `horseback-riding` + `cross-country-skiing` + 
+    `sea-kayaking` + birding + `off-road-driving` + ada + `scenic-driving` + 
+    `dogs-leash` + `dogs-no` + `ice-climbing` + difficulty + 
+    usage + I(popularity^(.5)), data = trails_lm_data)
+summary(lm.fin)
+```
+It's worth noting here that despite many significant predictors and a highly significant F-statistic, the $R^2$ is still only about .146, showing that the model doesn't work well at all.
+
+#### residual plots looking wacky
+```{r}
+plot(lm.fin)
+```
+
+#plotting histogram of ratings:
+```{r}
+hist(trails_lm_data$rating)
+#ggplot(trails_lm_data, aes(x=rating, y=..count..))+geom_histogram()
+```
+
+Rating in trails data might not be the best response variable, since it's essentially a categorical variable.
+
+
+
+### playing around with specific variables:
+Notes: 1 degree of latitude is roughly 70 miles 
+```{r}
+summary(lm(rating~lat,data=trails_lm_data))
+ggplot(trails_lm_data, aes(x=lat, y=rating))+geom_point()
+```
+
+# Using popularity as response:
+### running lm:
+```{r}
+lm.obj2 <- lm(popularity~., data=trails_lm_data)
+summary(lm.obj2)
+```
+
+### evaluating collinearity via Variance Inflation Factor:
+```{r}
+#correlation matrix:
+cormat <- round(cor(trails_lm_data[,2:10]),2)
+cormat
+#ifelse(abs(cormat) > 0.9, abs(cormat),0)
+
+#using Variance Inflation Factor for multi-collinearity
+vif(lm.obj2)
+```
+##### Nothing co-linear here, although popularity and num_reviews are still close, as well as elevation/length. 
+
+### AIC backwards step selection
+```{r}
+step(lm.obj2)
+```
+
+### final model (after some treatment, adding quadraric terms to length and num_reviews:
+```{r}
+lm.fin2 <- lm(popularity ~ route_type + length + difficulty + 
+    usage + num_reviews + lat + lng + rating+I(length^2)+I(num_reviews^2), data = trails_lm_data)
+summary(lm.fin2)
+
+step(lm.fin2)
+```
+
+#### residual plots better vy still a bit wacky
+```{r}
+plot(lm.fin2,which=c(1,2))
+```
+
+#plotting histogram of ratings:
+```{r}
+hist(trails_lm_data$popularity)
+ggplot(trails_lm_data, aes(x=popularity, y=..count..))+geom_histogram()
+```
+
+### playing around with specific variables:
+Notes: 1 degree of latitude is roughly 70 miles 
+```{r}
+summary(lm(popularity~lat,data=trails_lm_data))
+ggplot(trails_lm_data, aes(x=num_reviews, y=popularity))+geom_point()
+```
+
+
+## Popularity is clearly the better response variable when using a regression - most likely due to the categorical nature of rating.
+
+
+
+
+
+
+
+
